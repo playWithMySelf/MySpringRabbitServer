@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+    http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd">
+
+    <!-- 引入jdbc配置文件 -->
+    <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath*:rabbitmq.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <!-- rabbitMQ配置 -->
+    <bean id="rabbitConnectionFactory"
+          class="org.springframework.amqp.rabbit.connection.CachingConnectionFactory">
+        <constructor-arg value="${mq.host}"/>
+        <property name="username" value="${mq.username}"/>
+        <property name="password" value="${mq.password}"/>
+        <property name="channelCacheSize" value="${mq.channelCacheSize}"/>
+        <property name="port" value="${mq.port}"></property>
+    </bean>
+    <rabbit:admin connection-factory="rabbitConnectionFactory"/>
+
+    <!-- autoDelete:是否自动删除 durable:持久化  -->
+    <rabbit:queue name="topicMessageQueue" durable="true"/>
+    <rabbit:queue name="topicEmailQueue" durable="true"/>
+    <rabbit:queue name="directQueue" durable="true"/>
+
+    <!-- topic主题 -->
+    <rabbit:topic-exchange name="RabbitServer.topic.exchange" xmlns="http://www.springframework.org/schema/rabbit" durable="true">
+        <bindings>
+            <binding queue="topicMessageQueue" pattern="topic.message.#" />
+            <binding queue="topicEmailQueue" pattern="topic.email.#" />
+        </bindings>
+    </rabbit:topic-exchange>
+
+    <!--定义direct-exchange -->
+    <rabbit:direct-exchange name="RabbitServer.direct.exchange" durable="true" auto-delete="false">
+        <rabbit:bindings>
+            <rabbit:binding queue="directQueue" key="directQueue" ></rabbit:binding>
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+
+    <!-- 创建rabbitTemplate 消息模板类 -->
+    <bean id="rabbitTemplate" class="org.springframework.amqp.rabbit.core.RabbitTemplate">
+        <constructor-arg ref="rabbitConnectionFactory"></constructor-arg>
+    </bean>
+
+</beans>
